@@ -5,11 +5,9 @@ import com.google.common.io.Files;
 import com.google.common.primitives.UnsignedInteger;
 import com.liveramp.ts.common.ByteNumUtils;
 import lombok.extern.slf4j.Slf4j;
+import org.roaringbitmap.longlong.Roaring64Bitmap;
 
-import java.io.DataInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
+import java.io.*;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
@@ -26,7 +24,6 @@ public class TestCase extends junit.framework.TestCase {
         log.info("list: {}", list);
         assertTrue(true);
     }
-
 
     public void testUInt32() throws IOException {
         System.out.println(Integer.toBinaryString(65535));
@@ -81,9 +78,31 @@ public class TestCase extends junit.framework.TestCase {
         assertTrue(readInt == value);
     }
 
-    public void testReadFromBitmapContainer() {
+    public void testReadFromBitmapContainer() throws FileNotFoundException {
         System.out.println(64 * 64);
         System.out.println(String.format("%64s", Long.toBinaryString(5)).replace(' ', '0'));
+
+        Roaring64Bitmap roaring64Bitmap = new Roaring64Bitmap();
+
+//        roaring64Bitmap.serialize(new DataOutputStream(new FileOutputStream("bin/full_bitmap.bin")));
+//        roaring64Bitmap.readExternal(new DataInputStream(new FileInputStream("bin/full_bitmap.bin")));
+    }
+
+    public void testMy64() throws IOException {
+        com.liveramp.ts.roaring64.Roaring64Bitmap roaring64Bitmap = new com.liveramp.ts.roaring64.Roaring64Bitmap();
+        roaring64Bitmap.readExternal("bin/bitmap64.bin");
+        System.out.println(roaring64Bitmap);
+        roaring64Bitmap.writeExternal("bin/bitmap64java.bin", true);
+    }
+
+    public void testMy64Add(){
+        com.liveramp.ts.roaring64.Roaring64Bitmap roaring64Bitmap = new com.liveramp.ts.roaring64.Roaring64Bitmap();
+        roaring64Bitmap.add(1);
+        roaring64Bitmap.add(2);
+        roaring64Bitmap.add(3);
+        roaring64Bitmap.add(4);
+        roaring64Bitmap.add(((1L<<32) - 1));
+        roaring64Bitmap.writeExternal("bin/bitmap64java2.bin", true);
     }
 
 

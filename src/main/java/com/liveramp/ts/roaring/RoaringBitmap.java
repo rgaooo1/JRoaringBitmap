@@ -27,9 +27,15 @@ import static com.liveramp.ts.common.Consts.MAX_KEY_SIZE;
 @Slf4j
 public class RoaringBitmap {
 
+    static {
+        log.error("这个是在学习时做的32位bitmap, 不要使用 \n com.liveramp.ts.roaring64.Roaring64Bitmap 可以兼容go生成的64位bitmap");
+        System.exit(1);
+    }
     RoaringArray highlowcontainer;
 
     public RoaringBitmap() {
+        log.error("这个是在学习时做的32位bitmap, 请不要使用, com.liveramp.ts.roaring64.Roaring64Bitmap 可以兼容go生成的64位bitmap");
+        System.exit(1);
         highlowcontainer = new RoaringArray();
     }
 
@@ -98,6 +104,7 @@ public class RoaringBitmap {
             byte[] cookieBytes = stream.readNBytes(4);
             n += 4;
             cookie = ByteNumUtils.ReadInt(cookieBytes, true);
+            cookie = cookie & 0x0000FFFF;
 
             if (cookie == Consts.serialCookie) {
                 // TODO 当bitmap容器写满了,会自动转成RunContainer,这里还是需要支持的
