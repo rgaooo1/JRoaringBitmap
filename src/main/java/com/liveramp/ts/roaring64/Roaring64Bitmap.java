@@ -107,12 +107,12 @@ public class Roaring64Bitmap {
             log.info("keySize: {}", keySize);
             for (int i = 0; i < keySize; i++) {
                 int key = ByteNumUtils.ReadInt(stream.readNBytes(4), true);
-                stream.mark(0);
+                stream.mark(0); // mark the current position
                 RoaringBitmap bitmap = new RoaringBitmap();
                 ByteBuffer buffer = ByteBuffer.wrap(stream.readAllBytes());
                 bitmap.deserialize(buffer);
                 long size = bitmap.getLongSizeInBytes(); // bitmap content size
-                stream.reset();
+                stream.reset(); // reset to the marked position
                 stream.skip(size + 4); // [size] is bitmap content size + 4 bytes  is cookie size
                 highlowcontainer.add(key, bitmap);
             }
