@@ -112,10 +112,15 @@ public class Roaring64Bitmap {
                 RoaringBitmap bitmap = new RoaringBitmap();
                 ByteBuffer buffer = ByteBuffer.wrap(stream.readAllBytes());
                 bitmap.deserialize(buffer);
-                long size = bitmap.getLongSizeInBytes(); // bitmap content size
-                stream.reset(); // reset to the marked position
-                stream.skip(size + 4); // [size] is bitmap content size + 4 bytes  is cookie size
                 highlowcontainer.add(key, bitmap);
+                if (keySize>1){
+                    // bitmap content size
+                    long size = bitmap.getLongSizeInBytes();
+                    // reset to the marked position
+                    stream.reset();
+                    // [size] is bitmap content size + 4 bytes  is cookie size
+                    stream.skip(size + 4);
+                }
             }
         } catch (IOException e) {
             throw new RuntimeException(e);

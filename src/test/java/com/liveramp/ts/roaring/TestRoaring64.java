@@ -140,4 +140,12 @@ public class TestRoaring64 extends junit.framework.TestCase {
         });
     }
 
+    public void testReadSegments() throws IOException {
+        Roaring64Bitmap roaring64Bitmap = new Roaring64Bitmap();
+        roaring64Bitmap.readExternal("./bin/68c4f633-4bec-45ce-915d-f0218590c820");
+        roaring64Bitmap.iterator().forEachRemaining(x -> {
+            log.info("{}", Roaring64Bitmap.toUint64Str(x));
+        });
+    }
+
 }
