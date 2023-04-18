@@ -2,6 +2,7 @@ package com.liveramp.ts.roaring64;
 
 import com.google.common.io.ByteSource;
 import com.google.common.io.Files;
+import com.google.common.primitives.Ints;
 import com.google.common.primitives.UnsignedLong;
 import com.liveramp.ts.common.ByteNumUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -134,7 +135,8 @@ public class Roaring64Bitmap {
 
         try {
             long keySize = 0L;
-            // 不能直接用 highlowcontainer.size(), 如果key的个数 超过int_max,值是不准确的
+            // 不能直接用 highlowcontainer.size()
+            // 如果key的个数 超过int_max,值是不准确的
             // long keySize = highlowcontainer.size();
             fos = new FileOutputStream(file);
             RandomAccessFile dos = new RandomAccessFile(file, "rw");

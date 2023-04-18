@@ -2,6 +2,7 @@ package com.liveramp.ts.roaring;
 
 import com.liveramp.ts.roaring64.Roaring64Bitmap;
 import lombok.extern.slf4j.Slf4j;
+import org.openjdk.jmh.annotations.Benchmark;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -130,5 +131,13 @@ public class TestRoaring64 extends junit.framework.TestCase {
         assertTrue(count.get() == 105);
     }
 
+
+    public void testReadGo() throws IOException {
+        Roaring64Bitmap roaring64Bitmap = new Roaring64Bitmap();
+        roaring64Bitmap.readExternal("./bin/bitmap64go.bin");
+        roaring64Bitmap.iterator().forEachRemaining(x -> {
+            log.info("{}", Roaring64Bitmap.toUint64Str(x));
+        });
+    }
 
 }
