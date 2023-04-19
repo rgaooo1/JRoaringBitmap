@@ -91,6 +91,12 @@ public class Roaring64Bitmap {
         writeExternal(file, overwrite);
     }
 
+
+    public void readExternal(ByteSource byteSource) throws IOException {
+        BufferedInputStream stream = (BufferedInputStream) byteSource.openBufferedStream();
+        readExternal(stream);
+    }
+
     // [0-7] 8 bytes key size
     // [8-11] 4 bytes key
     // [12-unknown] bytes roaring32 bitmap
@@ -99,21 +105,26 @@ public class Roaring64Bitmap {
     // 4 bytes key
     // unknown bytes roaring32 bitmap
     // ... ...
-    public void readExternal(ByteSource byteSource) throws IOException {
-        BufferedInputStream stream = (BufferedInputStream) byteSource.openBufferedStream();
+    public void readExternal(InputStream stream) throws IOException {
         try {
             long keySize;
             log.info("Available: {} bytes", stream.available());
-            keySize = ByteNumUtils.ReadLong(stream.readNBytes(8));
+            byte[] keySizeByte = new byte[8];
+            stream.read(keySizeByte);
+            keySize = ByteNumUtils.ReadLong(keySizeByte);
             log.info("keySize: {}", keySize);
             for (int i = 0; i < keySize; i++) {
-                int key = ByteNumUtils.ReadInt(stream.readNBytes(4), true);
+                byte[] keyByte = new byte[4];
+                stream.read(keyByte);
+                int key = ByteNumUtils.ReadInt(keyByte, true);
                 stream.mark(0); // mark the current position
                 RoaringBitmap bitmap = new RoaringBitmap();
-                ByteBuffer buffer = ByteBuffer.wrap(stream.readAllBytes());
+                byte[] all = new byte[stream.available()];
+                stream.read(all);
+                ByteBuffer buffer = ByteBuffer.wrap(all);
                 bitmap.deserialize(buffer);
                 highlowcontainer.add(key, bitmap);
-                if (keySize>1){
+                if (keySize > 1) {
                     // bitmap content size
                     long size = bitmap.getLongSizeInBytes();
                     // reset to the marked position
@@ -128,7 +139,6 @@ public class Roaring64Bitmap {
             stream.close();
             log.info("read bitmap file done");
         }
-
     }
 
     public void writeExternal(File file, boolean overwrite) {

@@ -1,12 +1,9 @@
 package com.liveramp.ts.roaring64;
 
-import com.google.common.primitives.Ints;
-import com.google.common.primitives.Longs;
 import lombok.extern.slf4j.Slf4j;
 import org.roaringbitmap.RoaringBitmap;
 
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 

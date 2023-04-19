@@ -101,7 +101,8 @@ public class RoaringBitmap {
             log.info("Available: {} bytes", stream.available());
 
             /** 读取cookie **/
-            byte[] cookieBytes = stream.readNBytes(4);
+            byte[] cookieBytes = new byte[4];
+            stream.read(cookieBytes);
             n += 4;
             cookie = ByteNumUtils.ReadInt(cookieBytes, true);
             cookie = cookie & 0x0000FFFF;
@@ -111,7 +112,8 @@ public class RoaringBitmap {
                 log.error("Cookie {{}}, not support runs currently", cookie);
                 return;
             }
-            byte[] sizeBytes = stream.readNBytes(4);
+            byte[] sizeBytes = new byte[4];
+            stream.read(sizeBytes);
             n += 4;
             /** 读取KeySize **/
             keySize = ByteNumUtils.ReadUint32(sizeBytes);
@@ -128,8 +130,12 @@ public class RoaringBitmap {
             // kc: means key and cardinality
             int[][] kc = new int[(int) keySize][2];
             for (int i = 0; i < keySize; i++) {
-                int key = ByteNumUtils.ReadUint16(stream.readNBytes(2));
-                int cardinality = ByteNumUtils.ReadUint16(stream.readNBytes(2));
+                byte [] kByte = new byte[2];
+                byte [] cardByte = new byte[2];
+                stream.read(kByte);
+                stream.read(cardByte);
+                int key = ByteNumUtils.ReadUint16(kByte);
+                int cardinality = ByteNumUtils.ReadUint16(cardByte);
                 kc[i][0] = key;
 
                 /**
@@ -145,7 +151,9 @@ public class RoaringBitmap {
             /** 读取每个容器的offset(容器数据的开始位置) **/
             int[] offsets = new int[(int) keySize];
             for (int i = 0; i < keySize; i++) {
-                offsets[i] = ByteNumUtils.ReadInt(stream.readNBytes(4), true);
+                byte [] offsetByte = new byte[4];
+                stream.read(offsetByte);
+                offsets[i] = ByteNumUtils.ReadInt(offsetByte, true);
                 n += 4;
             }
             for (int i = 0; i < keySize; i++) {
