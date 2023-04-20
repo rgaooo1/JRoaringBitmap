@@ -2,7 +2,6 @@ package com.liveramp.ts.roaring64;
 
 import com.google.common.io.ByteSource;
 import com.google.common.io.Files;
-import com.google.common.primitives.Ints;
 import com.google.common.primitives.UnsignedLong;
 import com.liveramp.ts.common.ByteNumUtils;
 import lombok.extern.slf4j.Slf4j;
