@@ -32,7 +32,7 @@ public class RoaringArray64 {
 //                        0, 0, 0, 0, k2Bytes[0], k2Bytes[1], k2Bytes[2], k2Bytes[3]
 //                };
 //                return (int) (Longs.fromByteArray(k2LongBytes) - Longs.fromByteArray(k1LongBytes));
-                return k2 - k1;
+                return k1 - k2;
             }
         });
     }
