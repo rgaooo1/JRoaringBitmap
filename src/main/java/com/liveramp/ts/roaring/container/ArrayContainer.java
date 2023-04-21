@@ -29,7 +29,8 @@ public class ArrayContainer implements Container {
             throw new RuntimeException("cardinality is too large, may be it is a bitmap container");
         }
         // uint16 2 bytes
-        byte[] data = inputStream.readNBytes(cardinality * 2);
+        byte[] data = new byte[cardinality * 2];
+        inputStream.read(data);
         content = ByteNumUtils.ByteArrayToShortArray(data);
         return data.length;
     }

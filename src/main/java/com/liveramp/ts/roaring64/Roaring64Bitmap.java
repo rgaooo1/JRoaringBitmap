@@ -85,7 +85,7 @@ public class Roaring64Bitmap {
         readExternal(byteSource);
     }
 
-    public void writeExternal(String path, boolean overwrite) {
+    public void writeExternal(String path, boolean overwrite) throws IOException {
         File file = new File(path);
         writeExternal(file, overwrite);
     }
@@ -140,20 +140,42 @@ public class Roaring64Bitmap {
         }
     }
 
-    public void writeExternal(File file, boolean overwrite) {
+    public byte [] getBytes() {
+        ByteArrayOutputStream first = new ByteArrayOutputStream();
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        try {
+            long keySize = 0L;
+            for (Map.Entry<Integer, RoaringBitmap> entry : highlowcontainer.map.entrySet()) {
+                // write key 4 bytes
+                byte[] keyBytes = ByteNumUtils.toByteArray(Integer.reverseBytes(entry.getKey()));
+                // write bitmap ? bytes
+                bos.write(keyBytes);
+                ByteBuffer  byteBuffer  = ByteBuffer.allocate(entry.getValue().serializedSizeInBytes());
+                entry.getValue().serialize(byteBuffer);
+                bos.write(byteBuffer.array());
+                keySize++;
+            }
+            first.write(ByteNumUtils.toByteArray(Long.reverseBytes(keySize)));
+            first.write(bos.toByteArray());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return first.toByteArray();
+    }
+
+    public void writeExternal(File file, boolean overwrite) throws IOException {
         if (file.exists() && !overwrite) {
             throw new RuntimeException("file exist");
         }
         // file write stream
-        FileOutputStream fos = null;
-
+        RandomAccessFile dos =null;
         try {
+            dos = new RandomAccessFile(file, "rw");
             long keySize = 0L;
             // 不能直接用 highlowcontainer.size()
             // 如果key的个数 超过int_max,值是不准确的
             // long keySize = highlowcontainer.size();
-            fos = new FileOutputStream(file);
-            RandomAccessFile dos = new RandomAccessFile(file, "rw");
+
             // write key size 8 bytes
             byte[] bytes = {0, 0, 0, 0, 0, 0, 0, 0};
             dos.write(bytes);
@@ -163,6 +185,7 @@ public class Roaring64Bitmap {
                 // write bitmap ? bytes
                 dos.write(keyBytes);
                 entry.getValue().serialize(dos);
+
                 keySize++;
             }
             // write key size 8 bytes Little Endian
@@ -172,13 +195,7 @@ public class Roaring64Bitmap {
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
-            if (fos != null) {
-                try {
-                    fos.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
+            dos.close();
         }
     }
 

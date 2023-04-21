@@ -28,7 +28,9 @@ public class BitmapContainer implements Container {
             log.error("cardinality is too small, may be it is a array container");
             throw new RuntimeException("cardinality is too small, may be it is a array container");
         } else {
-            byte[] data = inputStream.readNBytes(BITMAP_CONTAINER_DEFAULT_MAX_SIZE / 8);
+
+            byte[] data = new byte[BITMAP_CONTAINER_DEFAULT_MAX_SIZE / 8];
+            inputStream.read(data);
             bitmap = ByteArrayToLongArray(data);
             cardinality = cardinality;
             return data.length;

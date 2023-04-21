@@ -4,6 +4,7 @@ import com.liveramp.ts.roaring64.Roaring64Bitmap;
 import lombok.extern.slf4j.Slf4j;
 import org.openjdk.jmh.annotations.Benchmark;
 
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -107,10 +108,34 @@ public class TestRoaring64 extends junit.framework.TestCase {
         }
     }
 
+    public void testGetBytes() throws IOException {
+        Roaring64Bitmap roaring64Bitmap = new Roaring64Bitmap();
+        List<Long> values = new ArrayList<>();
+        for (int i = 0; i < 100000; i++) {
+            long value = (long) (Math.random() * Long.MAX_VALUE);
+            values.add(value);
+        }
+        long start = System.currentTimeMillis();
+        for (long value : values) {
+            roaring64Bitmap.add(value);
+        }
+        long end = System.currentTimeMillis();
+        log.info("add {} values cost {} ms", values.size(), end - start);
+
+        byte[] bytes = roaring64Bitmap.getBytes();
+
+        // save bytes to file
+
+        FileOutputStream fos = new FileOutputStream("./bin/roaring64_java_random2.bin");
+        fos.write(bytes);
+        fos.flush();
+        fos.close();
+    }
+
     /**
      * 测试迭代器输出的顺序
      */
-    public void testOrder() {
+    public void testOrder() throws IOException {
 //        RoaringBitmap roaringBitmap = new RoaringBitmap();
 
         Roaring64Bitmap roaring64Bitmap = new Roaring64Bitmap();
