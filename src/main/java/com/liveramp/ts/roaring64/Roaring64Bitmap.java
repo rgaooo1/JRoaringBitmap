@@ -9,8 +9,7 @@ import org.roaringbitmap.RoaringBitmap;
 
 import java.io.*;
 import java.nio.ByteBuffer;
-import java.util.Iterator;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @author robgao
@@ -90,11 +89,11 @@ public class Roaring64Bitmap {
         writeExternal(file, overwrite);
     }
 
-
     public void readExternal(ByteSource byteSource) throws IOException {
         BufferedInputStream stream = (BufferedInputStream) byteSource.openBufferedStream();
         readExternal(stream);
     }
+
 
     // [0-7] 8 bytes key size
     // [8-11] 4 bytes key
@@ -106,31 +105,18 @@ public class Roaring64Bitmap {
     // ... ...
     public void readExternal(InputStream stream) throws IOException {
         try {
+            DataInput input = new DataInputStream(stream);
             long keySize;
             log.info("Available: {} bytes", stream.available());
-            byte[] keySizeByte = new byte[8];
-            stream.read(keySizeByte);
-            keySize = ByteNumUtils.ReadLong(keySizeByte);
+
+            keySize = Long.reverseBytes(input.readLong());
             log.info("keySize: {}", keySize);
+
             for (int i = 0; i < keySize; i++) {
-                byte[] keyByte = new byte[4];
-                stream.read(keyByte);
-                int key = ByteNumUtils.ReadInt(keyByte, true);
-                stream.mark(0); // mark the current position
+                int key = Integer.reverseBytes(input.readInt());
                 RoaringBitmap bitmap = new RoaringBitmap();
-                byte[] all = new byte[stream.available()];
-                stream.read(all);
-                ByteBuffer buffer = ByteBuffer.wrap(all);
-                bitmap.deserialize(buffer);
+                bitmap.deserialize(input);
                 highlowcontainer.add(key, bitmap);
-                if (keySize > 1) {
-                    // bitmap content size
-                    long size = bitmap.getLongSizeInBytes();
-                    // reset to the marked position
-                    stream.reset();
-                    // [size] is bitmap content size + 4 bytes  is cookie size
-                    stream.skip(size + 4);
-                }
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -140,35 +126,12 @@ public class Roaring64Bitmap {
         }
     }
 
-    public byte [] getBytes() {
-        ByteArrayOutputStream first = new ByteArrayOutputStream();
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        try {
-            long keySize = 0L;
-            for (Map.Entry<Integer, RoaringBitmap> entry : highlowcontainer.map.entrySet()) {
-                // write key 4 bytes
-                byte[] keyBytes = ByteNumUtils.toByteArray(Integer.reverseBytes(entry.getKey()));
-                // write bitmap ? bytes
-                bos.write(keyBytes);
-                ByteBuffer  byteBuffer  = ByteBuffer.allocate(entry.getValue().serializedSizeInBytes());
-                entry.getValue().serialize(byteBuffer);
-                bos.write(byteBuffer.array());
-                keySize++;
-            }
-            first.write(ByteNumUtils.toByteArray(Long.reverseBytes(keySize)));
-            first.write(bos.toByteArray());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        return first.toByteArray();
-    }
-
     public void writeExternal(File file, boolean overwrite) throws IOException {
         if (file.exists() && !overwrite) {
             throw new RuntimeException("file exist");
         }
         // file write stream
-        RandomAccessFile dos =null;
+        RandomAccessFile dos = null;
         try {
             dos = new RandomAccessFile(file, "rw");
             long keySize = 0L;
@@ -199,19 +162,86 @@ public class Roaring64Bitmap {
         }
     }
 
+    public byte[] getBytes() {
+        ByteArrayOutputStream first = new ByteArrayOutputStream();
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        try {
+            long keySize = 0L;
+            for (Map.Entry<Integer, RoaringBitmap> entry : highlowcontainer.map.entrySet()) {
+                // write key 4 bytes
+                byte[] keyBytes = ByteNumUtils.toByteArray(Integer.reverseBytes(entry.getKey()));
+                // write bitmap ? bytes
+                bos.write(keyBytes);
+                ByteBuffer byteBuffer = ByteBuffer.allocate(entry.getValue().serializedSizeInBytes());
+                entry.getValue().serialize(byteBuffer);
+                bos.write(byteBuffer.array());
+                keySize++;
+            }
+            first.write(ByteNumUtils.toByteArray(Long.reverseBytes(keySize)));
+            first.write(bos.toByteArray());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return first.toByteArray();
+    }
+
     public static String toUint64Str(long value) {
         UnsignedLong unsignedLong = UnsignedLong.fromLongBits(value);
         return unsignedLong.toString();
     }
 
-//    public void and(Roaring64Bitmap other) {
-//        for (Map.Entry<Integer, RoaringBitmap> e : highlowcontainer.map.entrySet()) {
-//            RoaringBitmap otherBitmap = other.highlowcontainer.map.get(e.getKey());
-//            if (otherBitmap != null) {
-//                e.getValue().and(otherBitmap);
-//            }
-//        }
-//    }
+    public void or(Roaring64Bitmap other) {
+        for (Map.Entry<Integer, RoaringBitmap> entry : other.highlowcontainer.map.entrySet()) {
+            int high = entry.getKey();
+            RoaringBitmap lowBitmap = entry.getValue();
+            RoaringBitmap thisLowBitmap = highlowcontainer.map.get(high);
+            if (thisLowBitmap != null) {
+                thisLowBitmap.or(lowBitmap);
+            } else {
+                highlowcontainer.map.put(high, lowBitmap);
+            }
+        }
+    }
+
+    public void and(Roaring64Bitmap other) {
+        Set<Integer> removeList = new HashSet<>();
+        for (Map.Entry<Integer, RoaringBitmap> entry : other.highlowcontainer.map.entrySet()) {
+            int high = entry.getKey();
+            RoaringBitmap lowBitmap = entry.getValue();
+            RoaringBitmap thisLowBitmap = highlowcontainer.map.get(high);
+            if (thisLowBitmap != null) {
+                thisLowBitmap.and(lowBitmap);
+                if (thisLowBitmap.isEmpty()) {
+                    removeList.add(high);
+                }
+            }
+        }
+
+        for (Map.Entry<Integer, RoaringBitmap> entry : highlowcontainer.map.entrySet()) {
+            int high = entry.getKey();
+            if (!other.highlowcontainer.map.containsKey(high)) {
+                removeList.add(high);
+            }
+        }
+
+        for (Integer high : removeList) {
+            highlowcontainer.map.remove(high);
+        }
+    }
+
+    public void not(Roaring64Bitmap other) {
+        for (Map.Entry<Integer, RoaringBitmap> entry : other.highlowcontainer.map.entrySet()) {
+            int high = entry.getKey();
+            RoaringBitmap lowBitmap = entry.getValue();
+            RoaringBitmap thisLowBitmap = highlowcontainer.map.get(high);
+            if (thisLowBitmap != null) {
+                thisLowBitmap.andNot(lowBitmap);
+                if (thisLowBitmap.isEmpty()) {
+                    highlowcontainer.map.remove(high);
+                }
+            }
+        }
+    }
 
     /**
      * iterator the bitmap
